@@ -314,24 +314,24 @@ depositButton.onclick = depositTokens;
 withdrawButton.onclick = withdrawTokens;
 
 // 页面加载时初始化
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        init(); // 延迟初始化
-    }, 500);
-});
+// window.addEventListener('load', () => {
+//     setTimeout(() => {
+//         init(); // 延迟初始化
+//     }, 500);
+// });
 
 
-// 监听账户变化
-if (typeof window.ethereum !== 'undefined') {
-    window.ethereum.on('accountsChanged', (accounts) => {
-        console.log('账户变化:', accounts);
+// // 监听账户变化
+// if (typeof window.ethereum !== 'undefined') {
+//     window.ethereum.on('accountsChanged', (accounts) => {
+//         console.log('账户变化:', accounts);
 
-        if (accounts.length === 0) {
-            location.reload();
-        } else {
-            account = accounts[0];
-            updateUIAfterConnection();
-            updateContractData();
-        }
-    });
+//         if (accounts.length === 0) {
+//             location.reload();
+//         } else {
+//             account = accounts[0];
+//             updateUIAfterConnection();
+//             updateContractData();
+//         }
+//     });
 }
