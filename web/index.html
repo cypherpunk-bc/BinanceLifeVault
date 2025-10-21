@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>币安人生金库</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">币安人生金库</h1>
+            <!--<h1 class="title"> DIAMOND PIGGY BANK</h1>-->
+
+            <div class="subtitle">去中心化储蓄 安全可靠</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">钱包连接</div>
+            <button id="connectButton" class="btn btn-primary">连接钱包</button>
+            <div id="walletInfo" class="wallet-info" style="display: none;">
+                已连接钱包: <span id="walletAddress"></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">我的存款</div>
+            <div class="wallet-info">
+                我的存款: <span id="userDeposit">0 币安人生</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">存款操作</div>
+            <div class="input-group">
+                <label class="input-label">存入币安人生代币数量</label>
+                <input type="number" id="depositAmount" placeholder="输入币安人生代币数量" min="0" step="0.001">
+            </div>
+            <div class="button-group">
+                <button id="approveButton" class="btn btn-outline">批准代币</button>
+                <button id="depositButton" class="btn btn-secondary">存入代币</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">提款操作</div>
+            <button id="withdrawButton" class="btn btn-secondary">提款</button>
+        </div>
+
+        <div class="section">
+            <div class="section-title">合约信息</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">BN代币总量</div>
+                    <div class="stat-value" id="totalSupply">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">总金额</div>
+                    <div class="stat-value" id="totalAmount">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">存款地址数</div>
+                    <div class="stat-value" id="totalDepositors">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">目标金额</div>
+                    <div class="stat-value" id="targetAmount">$0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="info-text">
+                ★ 存入币安人生代币获得稳定收益 ★
+                安全可靠 ★ 智能合约保障资金安全 ★
+                早存早收益 ★
+            </div>
+        </div>
+
+        <div class="footer">
+            © 2025 钻石猪 - 所有权利保留 | 安全储蓄 值得信赖
+        </div>
+    </div>
+
+    <script src="./index-js.js" type="module"></script>
+</body>
+
+</html>
