@@ -108,7 +108,7 @@ async function connect() {
 
 // 更新UI
 function updateUIAfterConnection() {
-    console.log('更新UI，账户:', account);
+    console.log('更新UI,账户:', account);
 
     if (walletAddress) {
         walletAddress.textContent = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
