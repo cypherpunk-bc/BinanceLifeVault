@@ -314,7 +314,12 @@ depositButton.onclick = depositTokens;
 withdrawButton.onclick = withdrawTokens;
 
 // 页面加载时初始化
-window.addEventListener('load', init);
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        init(); // 延迟初始化
+    }, 500);
+});
+
 
 // 监听账户变化
 if (typeof window.ethereum !== 'undefined') {
