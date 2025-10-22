@@ -1,3 +1,7 @@
+if (typeof window.ethereum === 'undefined' && typeof window.okxwallet !== 'undefined') {
+    window.ethereum = window.okxwallet;
+}
+
 import { createWalletClient, custom } from 'https://esm.sh/viem'
 import { createPublicClient, http, parseEther, formatEther } from 'https://esm.sh/viem'
 import { bscTestnet } from 'https://esm.sh/viem/chains'
@@ -314,7 +318,7 @@ approveButton.onclick = approveTokens;
 depositButton.onclick = depositTokens;
 withdrawButton.onclick = withdrawTokens;
 
-页面加载时初始化
+//页面加载时初始化
 window.addEventListener('load', () => {
     setTimeout(() => {
         init(); // 延迟初始化
