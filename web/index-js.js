@@ -27,6 +27,7 @@ const totalDepositorsElement = document.getElementById('totalDepositors')
 const targetAmountElement = document.getElementById('targetAmount')
 
 // 初始化
+// 初始化 - 保持原样
 async function init() {
     console.log('初始化开始...');
 
@@ -313,12 +314,12 @@ approveButton.onclick = approveTokens;
 depositButton.onclick = depositTokens;
 withdrawButton.onclick = withdrawTokens;
 
-// 页面加载时初始化
-// window.addEventListener('load', () => {
-//     setTimeout(() => {
-//         init(); // 延迟初始化
-//     }, 500);
-// });
+页面加载时初始化
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        init(); // 延迟初始化
+    }, 1000);
+});
 
 
 // // 监听账户变化
