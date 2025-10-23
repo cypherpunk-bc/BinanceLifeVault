@@ -61,12 +61,13 @@ contract HelperConfig {
                 releaseAddress: 0x1556a9A5C01ecc4eF11e751CacC847DD36971be7,
                 signerA: 0x1556a9A5C01ecc4eF11e751CacC847DD36971be7,
                 signerB: 0xb9C5A10Abd15e5583Da8Ab67EBA3D51092db28F2,
-                // ✅ 测试网请替换为你部署的 Mock 地址
+                // 测试网请替换为部署的 Mock 地址
                 binanceLifeToken: 0x9CF6392765683E147b1B5BdB60654F9d627773cc,
                 wbnb: 0x05f0fEE5b8460a773872f8e4e9D23aE109BB3592,
                 usdt: 0x21210a6213D7B1c6D83f393488F0aFC0913EBEd5,
                 bnbUsdtPair: 0x5d6Bf42E303e3189664aFaa2EA5e87E9a719dB38,
                 binanceLifeBnbPair: 0xd6f268AF3C4C4Dd7852f51aedd9De12e7048Ec73,
+                // 目标价格，放大1e18倍
                 targetPrice: targetPrice * 1e18
             });
     }

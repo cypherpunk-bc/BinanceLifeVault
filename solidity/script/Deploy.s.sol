@@ -47,7 +47,7 @@ contract Deploy is Script {
         return (address(vault), address(oracle));
     }
 
-    function run(uint targetPrice) external {
+    function run(uint256 targetPrice) external {
         deployer(targetPrice);
     }
 }

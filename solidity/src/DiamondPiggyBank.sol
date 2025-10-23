@@ -47,6 +47,9 @@ contract DiamondPiggyBank is Ownable {
     // 总存款金额
     uint256 public totalDeposits;
 
+    // 防止重复导入的映射
+    mapping(address => bool) public isInDepositorsArray;
+
     // 事件定义
     event Deposited(address indexed user, uint256 amount, uint256 timestamp);
     event Refunded(address indexed user, uint256 amount, uint256 timestamp);
@@ -134,6 +137,8 @@ contract DiamondPiggyBank is Ownable {
 
         if (userDeposit.amount == 0) {
             depositors.push(msg.sender);
+            // 记录用户已在数组中
+            isInDepositorsArray[msg.sender] = true;
         }
 
         userDeposit.amount += amount;
@@ -211,31 +216,50 @@ contract DiamondPiggyBank is Ownable {
         }
     }
 
-    /// @notice 执行完整迁移（仅合约所有者）
-    /// @dev 迁移资产和所有用户存款记录到新金库
+    // 分批迁移的批次大小，每次处理50个用户避免Gas限制
+    uint256 public migrationBatchSize = 50;
+
+    // 记录当前迁移进度，从哪个索引开始处理
+    uint256 public lastMigratedIndex = 0;
+
+    /// @notice 执行分批迁移（仅合约所有者）
+    /// @dev 分批次迁移用户存款记录，避免单次操作Gas超限
+    ///      只有最后一批次才会实际转移代币到新金库
     function executeMigration() external onlyOwner {
+        // 检查迁移条件：迁移功能已启用且有新金库地址
         require(migrationAllowed(), "Vault: Migration not allowed");
+        // 检查是否有存款需要迁移
         require(totalDeposits > 0, "Vault: No deposits to migrate");
 
-        uint256 contractBalance = TOKEN.balanceOf(address(this));
-        require(contractBalance > 0, "Vault: No tokens to migrate");
+        // 计算本次处理的起始和结束索引
+        uint256 startIndex = lastMigratedIndex; // 从上一次结束的位置开始
+        uint256 endIndex = startIndex + migrationBatchSize; // 计算本次结束位置
 
-        // 转移代币到新金库
-        bool success = TOKEN.transfer(newVaultAddress, contractBalance);
-        require(success, "Vault: Token migration failed");
+        // 如果结束索引超过用户数组长度，则调整到数组末尾
+        if (endIndex > depositors.length) {
+            endIndex = depositors.length;
+        }
 
-        // 迁移用户存款记录（通过事件记录，新金库可以监听并重建记录）
+        // 记录本次迁移的用户数量
         uint256 migratedUserCount = 0;
-        for (uint256 i = 0; i < depositors.length; i++) {
-            address user = depositors[i];
-            UserDeposit storage userDeposit = deposits[user];
 
-            // 只迁移未退款且还有余额的用户
-            if (userDeposit.amount > 0 && !userDeposit.refunded) {
+        // 遍历当前批次的用户
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            address user = depositors[i]; // 获取用户地址
+            UserDeposit storage userDeposit = deposits[user]; // 获取用户存款记录
+
+            // 检查用户是否有未退款、未迁移的存款
+            if (
+                userDeposit.amount > 0 &&
+                !userDeposit.refunded &&
+                !userDeposit.migrated
+            ) {
+                // 标记该用户存款为已迁移状态
                 userDeposit.migrated = true;
+                // 增加迁移用户计数
                 migratedUserCount++;
 
-                // 发出迁移事件，新金库可以监听这些事件来重建用户记录
+                // 发出用户迁移事件，新金库可以监听这些事件来重建用户记录
                 emit UserDepositMigrated(
                     user,
                     userDeposit.amount,
@@ -244,15 +268,112 @@ contract DiamondPiggyBank is Ownable {
             }
         }
 
-        // 更新总存款（理论上应该为0，因为所有资金已转移）
-        totalDeposits = 0;
+        // 更新迁移进度索引，记录已经处理到的位置
+        lastMigratedIndex = endIndex;
 
-        emit MigrationExecuted(
-            newVaultAddress,
-            contractBalance,
-            migratedUserCount,
-            block.timestamp
+        // 检查是否已经处理完所有用户（到达数组末尾）
+        if (lastMigratedIndex >= depositors.length) {
+            // 获取合约中代币的总余额
+            uint256 contractBalance = TOKEN.balanceOf(address(this));
+            // 确认合约中还有代币需要转移
+            require(contractBalance > 0, "Vault: No tokens to migrate");
+
+            // 将合约中的所有代币转移到新金库地址
+            bool success = TOKEN.transfer(newVaultAddress, contractBalance);
+            require(success, "Vault: Token migration failed");
+
+            // 重置合约状态
+            totalDeposits = 0; // 总存款清零
+            migrationEnabled = false; // 关闭迁移功能
+            lastMigratedIndex = 0; // 重置迁移进度，便于可能的后续操作
+
+            // 发出迁移完成事件，记录关键信息
+            emit MigrationExecuted(
+                newVaultAddress, // 新金库地址
+                contractBalance, // 迁移的代币总量
+                migratedUserCount, // 本次迁移的用户数量
+                block.timestamp // 迁移完成时间
+            );
+        }
+        // 注意：如果不是最后一批，函数执行结束但不发出MigrationExecuted事件
+        // 因为代币还没有实际转移，迁移还未真正完成
+    }
+
+    /// @notice 内部函数：导入单个用户存款记录
+    /// @dev 支持重复导入和更新现有记录
+    function _importUserDeposit(
+        address user,
+        uint256 amount,
+        uint256 timestamp,
+        bool refunded
+    ) internal {
+        require(amount > 0, "Vault: Invalid amount");
+        require(user != address(0), "Vault: Invalid user address");
+
+        UserDeposit storage existingDeposit = deposits[user];
+
+        // 如果用户已存在，先减去旧金额
+        if (existingDeposit.amount > 0) {
+            totalDeposits -= existingDeposit.amount;
+        }
+
+        // 如果是新用户，添加到数组
+        if (!isInDepositorsArray[user]) {
+            depositors.push(user);
+            isInDepositorsArray[user] = true;
+        }
+
+        deposits[user] = UserDeposit({
+            amount: amount,
+            timestamp: timestamp,
+            refunded: refunded,
+            migrated: false
+        });
+
+        totalDeposits += amount;
+
+        emit UserDepositMigrated(user, amount, timestamp);
+    }
+
+    /// @notice 新金库导入用户存款记录
+    /// @dev 支持重复导入和更新现有记录
+    function importUserDeposit(
+        address user,
+        uint256 amount,
+        uint256 timestamp,
+        bool refunded
+    ) external onlyOwner {
+        _importUserDeposit(user, amount, timestamp, refunded);
+    }
+
+    /// @notice 批量导入用户存款记录
+    function importUserDepositsBatch(
+        address[] calldata users,
+        uint256[] calldata amounts,
+        uint256[] calldata timestamps,
+        bool[] calldata refundedStatus
+    ) external onlyOwner {
+        require(
+            users.length == amounts.length,
+            "Vault: Users and amounts length mismatch"
         );
+        require(
+            users.length == timestamps.length,
+            "Vault: Users and timestamps length mismatch"
+        );
+        require(
+            users.length == refundedStatus.length,
+            "Vault: Users and refundedStatus length mismatch"
+        );
+
+        for (uint256 i = 0; i < users.length; i++) {
+            _importUserDeposit(
+                users[i],
+                amounts[i],
+                timestamps[i],
+                refundedStatus[i]
+            );
+        }
     }
 
     /// @notice Chainlink Automation: 检查执行条件

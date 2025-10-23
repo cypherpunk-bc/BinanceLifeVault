@@ -8,8 +8,8 @@ import { bscTestnet } from 'https://esm.sh/viem/chains'
 import { CONTRACT_ABI } from './contractAbi.js'
 
 // 配置 - 部署时修改这里
-const CONTRACT_ADDRESS = "0x0B5e5422fF23DD02b1b4eD0c11fc8A1C003982AC";
-const RPC_URL = "https://data-seed-prebsc-1-s1.binance.org:8545/";
+const CONTRACT_ADDRESS = "0x5D158cd6983b00e2D1367969F3AD0412B23794a5";
+const RPC_URL = "https://bsc-testnet.infura.io/v3/ccd622a8b114465aa32b55baa75efc35";
 
 // 全局变量
 let walletClient, publicClient, account, contract
@@ -326,17 +326,17 @@ window.addEventListener('load', () => {
 });
 
 
-// // 监听账户变化
-// if (typeof window.ethereum !== 'undefined') {
-//     window.ethereum.on('accountsChanged', (accounts) => {
-//         console.log('账户变化:', accounts);
+// 监听账户变化
+if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.on('accountsChanged', (accounts) => {
+        console.log('账户变化:', accounts);
 
-//         if (accounts.length === 0) {
-//             location.reload();
-//         } else {
-//             account = accounts[0];
-//             updateUIAfterConnection();
-//             updateContractData();
-//         }
-//     });
-// }
+        if (accounts.length === 0) {
+            location.reload();
+        } else {
+            account = accounts[0];
+            updateUIAfterConnection();
+            updateContractData();
+        }
+    });
+}
