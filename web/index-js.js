@@ -4,12 +4,12 @@ if (typeof window.ethereum === 'undefined' && typeof window.okxwallet !== 'undef
 
 import { createWalletClient, custom } from 'https://esm.sh/viem'
 import { createPublicClient, http, parseEther, formatEther } from 'https://esm.sh/viem'
-import { bscTestnet } from 'https://esm.sh/viem/chains'
+import { bsc } from 'https://esm.sh/viem/chains'
 import { CONTRACT_ABI } from './contractAbi.js'
 
 // 配置 - 部署时修改这里
-const CONTRACT_ADDRESS = "0x5D158cd6983b00e2D1367969F3AD0412B23794a5";
-const RPC_URL = "https://bsc-testnet.infura.io/v3/ccd622a8b114465aa32b55baa75efc35";
+const CONTRACT_ADDRESS = "0xd6f268AF3C4C4Dd7852f51aedd9De12e7048Ec73";
+const RPC_URL = "https://bsc-dataseed.binance.org/";
 
 // 全局变量
 let walletClient, publicClient, account, contract
@@ -70,12 +70,12 @@ async function setupClients() {
     console.log('设置客户端...');
 
     publicClient = createPublicClient({
-        chain: bscTestnet,
+        chain: bsc,
         transport: http(RPC_URL)
     });
 
     walletClient = createWalletClient({
-        chain: bscTestnet,
+        chain: bsc,
         transport: custom(window.ethereum)
     });
 
