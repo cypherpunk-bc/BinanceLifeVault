@@ -140,11 +140,10 @@ function updateUIAfterConnection() {
 
 // 更新合约数据
 async function updateContractData() {
-    // 只要 publicClient 好了就能读公共数据
     if (!publicClient) return;
 
     try {
-        // 第一部分：读取公共数据（不需要 account）
+        // 1. 读取数据
         const [totalDeposits, depositorCount, targetPrice, currentPrice, withdrawAllowed] = await Promise.all([
             publicClient.readContract({ ...contract, functionName: 'totalDeposits' }),
             publicClient.readContract({ ...contract, functionName: 'getDepositorCount' }),
@@ -153,37 +152,37 @@ async function updateContractData() {
             publicClient.readContract({ ...contract, functionName: 'withdrawAllowed' })
         ]);
 
-        // 更新公共 UI 元素
-        totalSupplyElement.textContent = parseFloat(formatEther(totalDeposits)).toLocaleString();
-        totalAmountElement.textContent = `$${(parseFloat(formatEther(totalDeposits)) * parseFloat(formatEther(currentPrice))).toLocaleString()}`;
-        totalDepositorsElement.textContent = depositorCount.toString();
-        targetAmountElement.textContent = `$${parseFloat(formatEther(targetPrice)).toLocaleString()}`;
+        // 2. 更新公共 UI 
+        if (totalSupplyElement) totalSupplyElement.textContent = parseFloat(formatEther(totalDeposits)).toLocaleString();
+        if (totalAmountElement) totalAmountElement.textContent = `$${(parseFloat(formatEther(totalDeposits)) * parseFloat(formatEther(currentPrice))).toLocaleString()}`;
+        if (totalDepositorsElement) totalDepositorsElement.textContent = depositorCount.toString();
+        if (targetAmountElement) targetAmountElement.textContent = `$${parseFloat(formatEther(targetPrice)).toLocaleString()}`;
 
-        // 更新提款状态 UI
-        if (withdrawAllowed) {
-            withdrawInfo.textContent = '提款功能已开启';
-            withdrawInfo.style.color = '#0a0';
-        } else {
-            withdrawInfo.textContent = '提款功能尚未开启';
-            withdrawInfo.style.color = '#f00';
+        // 3. 处理提款信息 
+        if (withdrawInfo) {
+            withdrawInfo.textContent = withdrawAllowed ? '提款功能已开启' : '提款功能尚未开启';
+            withdrawInfo.style.color = withdrawAllowed ? '#0a0' : '#f00';
         }
 
-        // 第二部分：读取个人数据（仅当 account 存在时）
-        if (account) {
+        // 4. 更新用户个人存款 
+        if (account && userDepositElement) {
             const userDeposit = await publicClient.readContract({
                 ...contract,
                 functionName: 'getUserDeposit',
                 args: [account]
             });
+
             const userDepositAmount = parseFloat(formatEther(userDeposit[0]));
             userDepositElement.textContent = `${userDepositAmount.toLocaleString()} BN`;
 
             if (userDeposit[2]) userDepositElement.innerHTML += ' <span style="color:red">(已退款)</span>';
             else if (userDeposit[3]) userDepositElement.innerHTML += ' <span style="color:orange">(已迁移)</span>';
 
-            withdrawButton.disabled = !withdrawAllowed;
-            withdrawButton.style.opacity = withdrawAllowed ? '1' : '0.7';
-        } else {
+            if (withdrawButton) {
+                withdrawButton.disabled = !withdrawAllowed;
+                withdrawButton.style.opacity = withdrawAllowed ? '1' : '0.7';
+            }
+        } else if (userDepositElement) {
             userDepositElement.textContent = '未连接钱包';
         }
 
