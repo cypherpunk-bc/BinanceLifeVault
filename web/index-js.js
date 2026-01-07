@@ -31,19 +31,37 @@ const totalDepositorsElement = document.getElementById('totalDepositors')
 const targetAmountElement = document.getElementById('targetAmount')
 
 // 初始化
-// 初始化 - 保持原样
 async function init() {
     console.log('初始化开始...');
 
+    // 无论有没有钱包，先初始化公共客户端
+    setupPublicClient();
+
+    // 立即读取一次公共数据（总额、目标等）
+    await updateContractData();
+
+    // 开启定时刷新
+    setInterval(updateContractData, 30000);
+
     if (typeof window.ethereum !== 'undefined') {
-        console.log('检测到 MetaMask');
+        console.log('检测到钱包环境');
         await checkConnectionStatus();
-        setInterval(updateContractData, 30000);
     } else {
-        console.log('未检测到 MetaMask');
-        connectButton.textContent = "请安装钱包!";
-        connectButton.disabled = true;
+        console.log('未检测到钱包插件');
+        if (connectButton) connectButton.textContent = "查看模式";
     }
+}
+
+// 公共客户端设置
+function setupPublicClient() {
+    publicClient = createPublicClient({
+        chain: bsc,
+        transport: http(RPC_URL)
+    });
+    contract = {
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI
+    };
 }
 
 // 检查连接状态
@@ -65,26 +83,16 @@ async function checkConnectionStatus() {
     }
 }
 
-// 设置客户端
+// 设置钱包客户端
 async function setupClients() {
-    console.log('设置客户端...');
-
-    publicClient = createPublicClient({
-        chain: bsc,
-        transport: http(RPC_URL)
-    });
+    console.log('设置钱包客户端...');
 
     walletClient = createWalletClient({
         chain: bsc,
         transport: custom(window.ethereum)
     });
 
-    contract = {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI
-    };
-
-    console.log('客户端设置完成');
+    console.log('钱包客户端设置完成');
 }
 
 // 连接钱包
@@ -132,57 +140,51 @@ function updateUIAfterConnection() {
 
 // 更新合约数据
 async function updateContractData() {
-    if (!account) {
-        console.log('没有账户，跳过更新合约数据');
-        return;
-    }
-
-    console.log('更新合约数据，账户:', account);
+    // 只要 publicClient 好了就能读公共数据
+    if (!publicClient) return;
 
     try {
-        const [totalDeposits, depositorCount, targetPrice, currentPrice, userDeposit, withdrawAllowed] = await Promise.all([
+        // 第一部分：读取公共数据（不需要 account）
+        const [totalDeposits, depositorCount, targetPrice, currentPrice, withdrawAllowed] = await Promise.all([
             publicClient.readContract({ ...contract, functionName: 'totalDeposits' }),
             publicClient.readContract({ ...contract, functionName: 'getDepositorCount' }),
             publicClient.readContract({ ...contract, functionName: 'TARGET_PRICE' }),
             publicClient.readContract({ ...contract, functionName: 'getCurrentPrice' }),
-            publicClient.readContract({ ...contract, functionName: 'getUserDeposit', args: [account] }),
             publicClient.readContract({ ...contract, functionName: 'withdrawAllowed' })
         ]);
 
-        console.log('用户存款数据:', userDeposit);
-        console.log('总存款:', totalDeposits);
-        console.log('存款地址数:', depositorCount);
-
-        // 更新UI
+        // 更新公共 UI 元素
         totalSupplyElement.textContent = parseFloat(formatEther(totalDeposits)).toLocaleString();
         totalAmountElement.textContent = `$${(parseFloat(formatEther(totalDeposits)) * parseFloat(formatEther(currentPrice))).toLocaleString()}`;
         totalDepositorsElement.textContent = depositorCount.toString();
         targetAmountElement.textContent = `$${parseFloat(formatEther(targetPrice)).toLocaleString()}`;
 
-        // 修复：正确显示用户存款
-        const userDepositAmount = parseFloat(formatEther(userDeposit[0]));
-        console.log('用户存款金额:', userDepositAmount);
-
-        userDepositElement.textContent = `${userDepositAmount.toLocaleString()} BN`;
-
-        // 显示存款状态
-        if (userDeposit[2]) { // refunded
-            userDepositElement.innerHTML += ' <span style="color:red">(已退款)</span>';
-        } else if (userDeposit[3]) { // migrated
-            userDepositElement.innerHTML += ' <span style="color:orange">(已迁移)</span>';
-        }
-
-        // 更新提款状态
+        // 更新提款状态 UI
         if (withdrawAllowed) {
             withdrawInfo.textContent = '提款功能已开启';
             withdrawInfo.style.color = '#0a0';
-            withdrawButton.disabled = false;
-            withdrawButton.style.opacity = '1';
         } else {
             withdrawInfo.textContent = '提款功能尚未开启';
             withdrawInfo.style.color = '#f00';
-            withdrawButton.disabled = true;
-            withdrawButton.style.opacity = '0.7';
+        }
+
+        // 第二部分：读取个人数据（仅当 account 存在时）
+        if (account) {
+            const userDeposit = await publicClient.readContract({
+                ...contract,
+                functionName: 'getUserDeposit',
+                args: [account]
+            });
+            const userDepositAmount = parseFloat(formatEther(userDeposit[0]));
+            userDepositElement.textContent = `${userDepositAmount.toLocaleString()} BN`;
+
+            if (userDeposit[2]) userDepositElement.innerHTML += ' <span style="color:red">(已退款)</span>';
+            else if (userDeposit[3]) userDepositElement.innerHTML += ' <span style="color:orange">(已迁移)</span>';
+
+            withdrawButton.disabled = !withdrawAllowed;
+            withdrawButton.style.opacity = withdrawAllowed ? '1' : '0.7';
+        } else {
+            userDepositElement.textContent = '未连接钱包';
         }
 
     } catch (error) {
