@@ -179,8 +179,8 @@ async function updateContractData() {
             else if (userDeposit[3]) userDepositElement.innerHTML += ' <span style="color:orange">(已迁移)</span>';
 
             if (withdrawButton) {
-                withdrawButton.disabled = !withdrawAllowed;
-                withdrawButton.style.opacity = withdrawAllowed ? '1' : '0.7';
+                withdrawButton.disabled = false;
+                withdrawButton.style.opacity = '1';
             }
         } else if (userDepositElement) {
             userDepositElement.textContent = '未连接钱包';
